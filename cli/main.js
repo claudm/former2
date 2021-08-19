@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 
 var AWS = require("aws-sdk");
+//forçar leitura de acessos para aws , descomentar as linhas abaixo com dados de sua conta
+//AWS.config.accessKeyId     = "XXXXXXXXXXXXX";
+//AWS.config.secretAccessKey = "XXXXXXXXXXXXX";
+//AWS.config.sessionToken    = "XXXXXXXXXXXXX";
+
+
+//lendo dependencias
 var proxy = require('proxy-agent');
 const fs = require('fs');
 const util = require('util');
@@ -93,9 +100,11 @@ if (!region) {
 }
 
 var stack_parameters = [];
+//lendo arquivos de funções externas
 eval(fs.readFileSync(path.join(__dirname, 'deepmerge.js'), 'utf8'));
 eval(fs.readFileSync(path.join(__dirname, 'mappings.js'), 'utf8'));
 eval(fs.readFileSync(path.join(__dirname, 'datatables.js'), 'utf8'));
+//lendo arquivos de serviços que serão mapeados
 var items = fs.readdirSync(path.join(__dirname, 'services'));
 for (var i=0; i<items.length; i++) {
     eval(fs.readFileSync(path.join(__dirname, 'services', items[i]), 'utf8'));
@@ -103,12 +112,16 @@ for (var i=0; i<items.length; i++) {
 
 f2log = function(msg){};
 f2trace = function(err){};
-
+//iniciando o sistema na função main
 async function main(opts) {
+    //variavel para resolver o problema do proxy  
+
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
+  
     if (!opts.outputRawData && !opts.outputCloudformation && !opts.outputTerraform) {
         throw new Error('You must specify an output type');
     }
-
+    //pegando as variaveis das opções na linha de comando
     if (opts.debug) {
         f2log = function(msg){ console.log(msg); };
         f2trace = function(err){ console.trace(err); };
@@ -185,6 +198,7 @@ async function main(opts) {
         .map(work =>
             new Promise(async resolve => {
                 try {
+                    //debugger; //fase inicial  extrair os dados da aws
                     await work();
                 } catch (err) {
                     awslog.warn(util.format('updateDatatable failed: %j', err));
@@ -243,10 +257,11 @@ async function main(opts) {
                 });
             }
         }
-
+        //debugger; //fase de mapear os dados para o parser para output_objects
         var tracked_resources = performF2Mappings(output_objects);
+        //debugger; //fase de transformar os dados anteriores para o formato terraform
         var mapped_outputs = compileOutputs(tracked_resources, opts.cfnDeletionPolicy);
-
+        generateDiagram()
         if (opts.outputCloudformation) {
             fs.writeFileSync(opts.outputCloudformation, mapped_outputs['cfn']);
         }
