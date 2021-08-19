@@ -308,3 +308,4 @@ cliargs.parse(process.argv);
 if (!validation) {
     cliargs.help();
 }
+
