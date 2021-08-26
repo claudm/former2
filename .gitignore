@@ -745,3 +745,52 @@ index e36d1c7..d78ab93 100644
 +        reqParams.tf['Enabled'] = obj.data.Enabled;
 +        reqParams.cfn['Enabled'] = obj.data.Enabled;
 +
+
++        reqParams.tf['Type'] = obj.data.Type;
+         reqParams.cfn['Type'] = obj.data.Type;
++
++        reqParams.tf['Description'] = obj.data.Description;
+         reqParams.cfn['Description'] = obj.data.Description;
++
++        reqParams.tf['Schedule'] = obj.data.Schedule;
+         reqParams.cfn['Schedule'] = obj.data.Schedule;
++
++        reqParams.tf['WorkflowName'] = obj.data.WorkflowName;
+         reqParams.cfn['WorkflowName'] = obj.data.WorkflowName;
++
++        // reqParams.tf['StartOnCreation'] = true;
+         reqParams.cfn['StartOnCreation'] = true;
+-        if (obj.data.actions) {
++
++        if (obj.data.Actions) {
++
++            reqParams.tf['Actions'] = [];
++            
+             reqParams.cfn['Actions'] = [];
+-            obj.data.actions.forEach(action => {
++            
++            
++
++            obj.data.Actions.forEach(action => {
++
++                var name =""
++                var value =""
++                Object.keys(action).forEach(function (key) {
++                    if (key.indexOf("Name") !== -1 ){
++                        name = key;
++                        value = action[key];
++                    }
++                })
+                 reqParams.cfn['Actions'].push({
+-                    'JobName': action.JobName,
++                    name: value,
+                     'Arguments': action.Arguments
+                 });
++                reqParams.tf['Actions'].push({
++                    job_name : value,
++                    'Arguments': action.Arguments
++                });
++                
++
+             });
+         }
