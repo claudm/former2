@@ -329,3 +329,113 @@ index cee43c2..3e88c04 100755
              }
          } catch (err) {
              $.notify({
+diff --git a/js/services/ec2.js b/js/services/ec2.js
+index c58cef3..f96e284 100644
+--- a/js/services/ec2.js
++++ b/js/services/ec2.js
+@@ -2012,8 +2012,9 @@ async function updateDatatableComputeEC2() {
+ 
+         unblockUI('#section-compute-ec2-launchtemplates-datatable');
+     });
+-
++    // debugger;
+     await sdkcall("ELBv2", "describeTargetGroups", {
++        
+         // no params
+     }, true).then(async (data) => {
+         $('#section-compute-ec2-v2targetgroups-datatable').deferredBootstrapTable('removeAll');
+@@ -2591,6 +2592,12 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+             }
+         });
+     } else if (obj.type == "elbv2.targetgroup") {
++        // debugger;
++        // reqParamsatt="";
++        
++              
++        reqParams.cfn['Port'] = obj.data.Port;
++        reqParams.tf['port'] = obj.data.Port;  
+         var matcherHttpCode = null;
+         if (obj.data.Matcher) {
+             matcherHttpCode = obj.data.Matcher.HttpCode;
+@@ -2600,7 +2607,7 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+             'path': obj.data.HealthCheckPath,
+             'port': obj.data.HealthCheckPort,
+             'protocol': obj.data.HealthCheckProtocol,
+-            'timeout': obj.data.HealthCheckTimeoutSeconds,
++            // 'timeout': obj.data.HealthCheckTimeoutSeconds,
+             'unhealthy_threshold': obj.data.UnhealthyThresholdCount,
+             'healthy_threshold': obj.data.HealthyThresholdCount,
+             'matcher': matcherHttpCode
+@@ -2655,6 +2662,21 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+                 }
+             }
+         });
++     
++        reqParams= {'tf': {}}
++        reqParams.tf['target_id'] = obj.data.TargetGroupArn.substr(obj.data.TargetGroupArn.lastIndexOf("/", obj.data.TargetGroupArn.length)+1,obj.data.TargetGroupArn.length );
++        reqParams.tf['target_group_arn'] = obj.data.TargetGroupArn;
++        reqParams.tf['port'] = obj.data.Port;       
++ 
++        tracked_resources.push({
++            'obj': obj,
++            'logicalId': getResourceName('elbv2', obj.id, 'AWS::LoadBalancer::Target::Group::Attachent'),
++            'region': obj.region,
++            'service': 'elbv2',            
++            'terraformType': 'aws_lb_target_group_attachment',
++            'options':  reqParams      
++        });
++        
+     } else if (obj.type == "ec2.volume") {
+         reqParams.cfn['AvailabilityZone'] = obj.data.AvailabilityZone;
+         reqParams.tf['availability_zone'] = obj.data.AvailabilityZone;
+@@ -2740,16 +2762,16 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+                         reqParams.cfn['SecurityGroupIngress'].push({
+                             'CidrIp': ipRange.CidrIp,
+                             'Description': ipRange.Description,
+-                            'FromPort': ipPermission.FromPort,
++                            'FromPort': (ipPermission.FromPort ? ipPermission.FromPort : '0') ,
+                             'IpProtocol': ipPermission.IpProtocol,
+-                            'ToPort': ipPermission.ToPort
++                            'ToPort': (ipPermission.ToPort ? ipPermission.ToPort :'0')
+                         });
+                         reqParams.tf['ingress'].push({
+                             'cidr_blocks': [ipRange.CidrIp],
+                             'description': ipRange.Description,
+-                            'from_port': ipPermission.FromPort,
++                            'from_port': (ipPermission.FromPort ? ipPermission.FromPort : '0'),
+                             'protocol': ipPermission.IpProtocol,
+-                            'to_port': ipPermission.ToPort
++                            'to_port': (ipPermission.ToPort ? ipPermission.ToPort :'0')
+                         });
+                     });
+                 }
+@@ -2802,16 +2824,16 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+                         reqParams.cfn['SecurityGroupEgress'].push({
+                             'CidrIp': ipRange.CidrIp,
+                             'Description': ipRange.Description,
+-                            'FromPort': ipPermissionsEgress.FromPort,
++                            'FromPort': (ipPermissionsEgress.FromPort ? ipPermissionsEgress.FromPort: "0") ,
+                             'IpProtocol': ipPermissionsEgress.IpProtocol,
+-                            'ToPort': ipPermissionsEgress.ToPort
++                            'ToPort': ( ipPermissionsEgress.ToPort ? ipPermissionsEgress.ToPort : "0")
+                         });
+                         reqParams.tf['egress'].push({
+                             'cidr_blocks': [ipRange.CidrIp],
+                             'description': ipRange.Description,
+-                            'from_port': ipPermissionsEgress.FromPort,
++                            'from_port': (ipPermissionsEgress.FromPort ? ipPermissionsEgress.FromPort: "0"),
+                             'protocol': ipPermissionsEgress.IpProtocol,
+-                            'to_port': ipPermissionsEgress.ToPort
++                            'to_port': ( ipPermissionsEgress.ToPort ? ipPermissionsEgress.ToPort : "0")
+                         });
+                     });
+                 }
+@@ -3100,7 +3122,7 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+         }
+         if (obj.data.LaunchTemplateData.CreditSpecification) {
+             reqParams.tf['credit_specification'] = {
+-                '': obj.data.LaunchTemplateData.CreditSpecification.CpuCredits
++                'cpu_credits': obj.data.LaunchTemplateData.CreditSpecification.CpuCredits
+             };
+         }
+ 
