@@ -641,3 +641,53 @@ index e36d1c7..d78ab93 100644
          }
          if (obj.data.JsonClassifier) {
 +
+
++            reqParams.tf['JsonPath'] = obj.data.JsonClassifier.JsonPath;
++            reqParams.tf['Name'] = obj.data.JsonClassifier.Name;
++
+             reqParams.cfn['JsonClassifier'] = {
+                 'JsonPath': obj.data.JsonClassifier.JsonPath,
+                 'Name': obj.data.JsonClassifier.Name
+             };
+         }
+         if (obj.data.CsvClassifier) {
++
++            reqParams.tf['Name'] = obj.data.CsvClassifier.Name;
++            reqParams.tf['AllowSingleColumn'] = obj.data.CsvClassifier.AllowSingleColumn;
++            reqParams.tf['ContainsHeader'] = obj.data.CsvClassifier.ContainsHeader;
++            reqParams.tf['Delimiter'] = obj.data.CsvClassifier.Delimiter;
++            reqParams.tf['DisableValueTrimming'] = obj.data.CsvClassifier.DisableValueTrimming;
++            reqParams.tf['Header'] = obj.data.CsvClassifier.Header;
++            reqParams.tf['QuoteSymbol'] = obj.data.CsvClassifier.QuoteSymbol;
++
+             reqParams.cfn['CsvClassifier'] = {
+                 'Name': obj.data.CsvClassifier.Name,
+                 'AllowSingleColumn': obj.data.CsvClassifier.AllowSingleColumn,
+@@ -1321,25 +1417,65 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+             'region': obj.region,
+             'service': 'glue',
+             'type': 'AWS::Glue::Classifier',
++            'terraformType': 'AWS_Glue_Classifier',
+             'options': reqParams
+         });
+     } else if (obj.type == "glue.job") {
++        
++
++        reqParams.tf['Name'] = obj.data.Name;
+         reqParams.cfn['Name'] = obj.data.Name;
++
++        reqParams.tf['Description'] = obj.data.Description;
+         reqParams.cfn['Description'] = obj.data.Description;
++
++        reqParams.tf['LogUri'] = obj.data.LogUri;
+         reqParams.cfn['LogUri'] = obj.data.LogUri;
++
++        reqParams.tf['RoleArn'] = obj.data.Role;
+         reqParams.cfn['Role'] = obj.data.Role;
++
++        reqParams.tf['ExecutionProperty'] = obj.data.ExecutionProperty;
+         reqParams.cfn['ExecutionProperty'] = obj.data.ExecutionProperty;
++
++        reqParams.tf['Command'] = obj.data.Command;
+         reqParams.cfn['Command'] = obj.data.Command;
++
