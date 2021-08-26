@@ -572,3 +572,72 @@ index e36d1c7..d78ab93 100644
 +            reqParams.tf['JdbcTargets'] = obj.data.Targets.JdbcTargets;
 +            reqParams.tf['DynamoDBTargets'] = obj.data.Targets.DynamoDBTargets;
 +            reqParams.tf['CatalogTargets'] = obj.data.Targets.CatalogTargets;
+ reqParams.cfn['Targets'] = {
+                 'S3Targets': obj.data.Targets.S3Targets,
+                 'JdbcTargets': obj.data.Targets.JdbcTargets,
+@@ -1261,16 +1318,30 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+                 'CatalogTargets': obj.data.Targets.CatalogTargets
+             };
+         }
++
++        reqParams.tf['DatabaseName'] = obj.data.DatabaseName;
+         reqParams.cfn['DatabaseName'] = obj.data.DatabaseName;
++
++        reqParams.tf['Description'] = obj.data.Description;
+         reqParams.cfn['Description'] = obj.data.Description;
++
++        reqParams.tf['Classifiers'] = obj.data.Classifiers;
+         reqParams.cfn['Classifiers'] = obj.data.Classifiers;
++
++        reqParams.tf['SchemaChangePolicy'] = obj.data.SchemaChangePolicy;
+         reqParams.cfn['SchemaChangePolicy'] = obj.data.SchemaChangePolicy;
++
++        reqParams.tf['TablePrefix'] = obj.data.TablePrefix;
+         reqParams.cfn['TablePrefix'] = obj.data.TablePrefix;
++
+         if (obj.data.Schedule) {
++            reqParams.tf['ScheduleExpression'] = obj.data.Schedule.ScheduleExpression;
+             reqParams.cfn['Schedule'] = {
+                 'ScheduleExpression': obj.data.Schedule.ScheduleExpression
+             };
+         }
++
++        reqParams.tf['Configuration'] = obj.data.Configuration;
+         reqParams.cfn['Configuration'] = obj.data.Configuration;
+ 
+         tracked_resources.push({
+@@ -1279,10 +1350,17 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+             'region': obj.region,
+             'service': 'glue',
+             'type': 'AWS::Glue::Crawler',
++            'terraformType': 'AWS_Glue_Crawler',
+             'options': reqParams
+         });
+     } else if (obj.type == "glue.classifier") {
+         if (obj.data.GrokClassifier) {
++
++            reqParams.tf['CustomPatterns'] = obj.data.GrokClassifier.CustomPatterns;
++            reqParams.tf['GrokPattern'] = obj.data.GrokClassifier.GrokPattern;
++            reqParams.tf['Classification'] = obj.data.GrokClassifier.Classification;
++            reqParams.tf['Name'] = obj.data.GrokClassifier.Name;
++
+             reqParams.cfn['GrokClassifier'] = {
+                 'CustomPatterns': obj.data.GrokClassifier.CustomPatterns,
+                 'GrokPattern': obj.data.GrokClassifier.GrokPattern,
+@@ -1291,6 +1369,11 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+             };
+         }
+         if (obj.data.XMLClassifier) {
++
++            reqParams.tf['RowTag'] = obj.data.XMLClassifier.RowTag;
++            reqParams.tf['Classification'] = obj.data.XMLClassifier.Classification;
++            reqParams.tf['Name'] = obj.data.XMLClassifier.Name;
++
+             reqParams.cfn['XMLClassifier'] = {
+                 'RowTag': obj.data.XMLClassifier.RowTag,
+                 'Classification': obj.data.XMLClassifier.Classification,
+@@ -1298,12 +1381,25 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+             };
+         }
+         if (obj.data.JsonClassifier) {
++
