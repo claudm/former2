@@ -489,3 +489,31 @@ index e36d1c7..d78ab93 100644
 +        reqParams.tf['DatabaseName'] = obj.data.DatabaseName;
          reqParams.cfn['DatabaseName'] = obj.data.DatabaseName;
 +
++
++        reqParams.tf['CatalogId'] = "var.accountid";
+         reqParams.cfn['CatalogId'] = "!Ref \"AWS::AccountId\"";
++        reqParams.tf['Owner'] = obj.data.Owner;
++        reqParams.tf['ViewOriginalText'] = obj.data.ViewOriginalText;
++        reqParams.tf['Description'] = obj.data.Description;
++        reqParams.tf['TableType'] = obj.data.TableType;
++        // reqParams.tf['Parameters'] = obj.data.Parameters;
++        reqParams.tf['ViewExpandedText'] = obj.data.ViewExpandedText;
++        
++        reqParams.tf['PartitionKeys'] = obj.data.PartitionKeys;
++        reqParams.tf['Retention'] = obj.data.Retention;
++        reqParams.tf['Name'] = obj.data.Name;
+         reqParams.cfn['TableInput'] = {
+             'Owner': obj.data.Owner,
+             'ViewOriginalText': obj.data.ViewOriginalText,
+             'Description': obj.data.Description,
+             'TableType': obj.data.TableType,
+-            'Parameters': obj.data.Parameters,
++            // 'Parameters': obj.data.Parameters,
+             'ViewExpandedText': obj.data.ViewExpandedText,
+             'StorageDescriptor': obj.data.StorageDescriptor,
+             'PartitionKeys': obj.data.PartitionKeys,
+             'Retention': obj.data.Retention,
+             'Name': obj.data.Name
+         };
++        
+ 
