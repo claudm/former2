@@ -691,3 +691,57 @@ index e36d1c7..d78ab93 100644
 +        reqParams.tf['Command'] = obj.data.Command;
          reqParams.cfn['Command'] = obj.data.Command;
 +
+
++        reqParams.tf['DefaultArguments'] = obj.data.DefaultArguments;
+         reqParams.cfn['DefaultArguments'] = obj.data.DefaultArguments;
+         reqParams.cfn['Connections'] = obj.data.Connections;
++        // 
++        if (typeof obj.data.Connections == "object") {
++            
++            reqParams.tf['Connections'] = obj.data.Connections['Connections'];
++        }
++        
++
++        reqParams.tf['MaxRetries'] = obj.data.MaxRetries;
+         reqParams.cfn['MaxRetries'] = obj.data.MaxRetries;
++
++        
+         reqParams.cfn['AllocatedCapacity'] = obj.data.AllocatedCapacity;
++
++        reqParams.tf['Timeout'] = obj.data.Timeout;
+         reqParams.cfn['Timeout'] = obj.data.Timeout;
++
++        reqParams.tf['NotificationProperty'] = obj.data.NotificationProperty;
+         reqParams.cfn['NotificationProperty'] = obj.data.NotificationProperty;
++
++        reqParams.tf['GlueVersion'] = obj.data.GlueVersion;
+         reqParams.cfn['GlueVersion'] = obj.data.GlueVersion;
++
+         reqParams.cfn['MaxCapacity'] = obj.data.MaxCapacity;
++
++        reqParams.tf['NumberOfWorkers'] = obj.data.NumberOfWorkers;
+         reqParams.cfn['NumberOfWorkers'] = obj.data.NumberOfWorkers;
++
++        reqParams.tf['WorkerType'] = obj.data.WorkerType;
+         reqParams.cfn['WorkerType'] = obj.data.WorkerType;
++        reqParams.tf['ExecutionProperty'] = obj.data.ExecutionProperty
++        reqParams.cfn['ExecutionProperty'] = obj.data.ExecutionProperty
++        
+ 
+         tracked_resources.push({
+             'obj': obj,
+@@ -1347,43 +1483,109 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+             'region': obj.region,
+             'service': 'glue',
+             'type': 'AWS::Glue::Job',
++            'terraformType': 'AWS_Glue_Job',
+             'options': reqParams
+         });
+     } else if (obj.type == "glue.trigger") {
++
++        reqParams.tf['Name'] = obj.data.Name;
+         reqParams.cfn['Name'] = obj.data.Name;
++        
++        reqParams.tf['Enabled'] = obj.data.Enabled;
++        reqParams.cfn['Enabled'] = obj.data.Enabled;
++
