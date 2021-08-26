@@ -6,124 +6,330 @@ cli/datatables.js
 cli/services
 lib/drawio/src/main/webapp/WEB-INF/lib/appengine-api-1.0-sdk-1.9.63.jar
 .DS_Store
-import json,requests,boto3,os,sys
-from requests_aws4auth import AWS4Auth
-from boto3 import Session
-import logging
-requests.packages.urllib3.disable_warnings()
-a_logger = logging.getLogger()
-a_logger.setLevel(logging.INFO)
-stdout_handler = logging.StreamHandler(sys.stdout)
-a_logger.addHandler(stdout_handler)
-
-
-
-session = Session(profile_name='default')
-credentials = session.get_credentials()
-current_credentials = credentials.get_frozen_credentials()
-
-# I would not recommend actually printing these. Generally unsafe.
-accessKey= current_credentials.access_key
-secretKey= current_credentials.secret_key
-sessionToken= current_credentials.token 
-region= 'sa-east-1'
-
-def request_body(body,url,method):
-    global accessKey,secretKey,sessionToken,region  
-    service = 'execute-api'
-    headers={"Content-Type":"application/json","x-apigw-api-id":"ye25sdnp51"}
-    auth = AWS4Auth(accessKey, secretKey, region, service, session_token=sessionToken)
-    req = requests.request(method, url, auth=auth, data=body, headers=headers,verify=False)
-    a_logger.info(req._content)
-    
-
-def create_role(role):
-
-    body =json.dumps(role)    
-    url = "https://api"
-    
-    return request_body(body,url,'POST')    
-
-def create_policy(policy):
-      
-    body =json.dumps(policy)
-    url = "https://api"
-    
-    return request_body(body,url,'POST')
-
-def delete_policy(policy_name):
-    url = "https://api"
-    return request_body(policy_name,url,'DELETE')  
-
-def delete_role(role_name):
-    url = "https://api"
-    return request_body(role_name,url,'DELETE') 
-
-
-def process_from_file(path,func):
-    
-    files =[f.path for f in os.scandir(path) if f.is_file()]
-    for file in files:
-       file_path =  os.path.realpath(file)
-       with open(file_path,'r',encoding='utf-8-sig') as f:
-            load=f.read()   
-            name =file.replace(".js","").split("\\")[1] 
-            if  func ==    "create_policy":
-                 
-                body = {"PolicyName": name,"Overwrite": True}
-                body["PolicyDocument"] = json.loads(load)
-            else:
-                policy_name = file.replace(".js","").split("\\")[1].split("-")[-1]
-                body = {"RoleName":name ,"ManagedPolicyArns": ["arn:aws:iam::xxxxx:policy/iamsr/" + policy_name]}
-                body['AssumeRolePolicyDocument']= json.loads(load)
-
-            #load function from variable
-            exec_func=eval(func)
-            #exec function
-            exec_func(body) 
-
-def resource_name(path,name):    
-   
-        file_path =  os.path.realpath(path) + '.js'
-        with open(file_path,'r',encoding='utf-8-sig') as f:
-            load=json.loads(f.read())
-            return load[name]
-             
-
-if __name__ == '__main__':  
-
-        
-
-  
-
-    policy_name="""
-    {
-        "PolicyName": "tloadbalancer"
-    }
-    """
-    
-    role_name="""
-    {
-    "RoleName": "lambda-"
-    }
-    """
-     
-    
-
-    #descomentar para deletar
-    # delete_role(role_name)
-    # delete_policy(policy_name)
-    
-
-
-    
-    process_from_file('policys','create_policy')
-    process_from_file('roles','create_role')  
-    # role_name = resource_name('roles/role','PolicyName')    
-    # policy_name = resource_name('policys/iam','RoleName')
-    
-    
-    
-
-
-     
+diff --git a/cli/main.js b/cli/main.js
+index 866d13e..aed81e2 100755
+--- a/cli/main.js
++++ b/cli/main.js
+@@ -105,6 +105,20 @@ f2log = function(msg){};
+ f2trace = function(err){};
+ 
+ async function main(opts) {
++    AWS.config = new AWS.Config();
++    process.env.AWS_SDK_LOAD_CONFIG="true";
++    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
++    AWS.config.update({httpOptions: {agent: proxy("http://proxy:8080")},rejectedUnauthorized: true,}); 
++    const { fromSSO  } = require('@aws-sdk/credential-provider-sso');
++    const credentials = await fromSSO({ profile: "default" })();
++    // AWS.config.update({region: 'sa-east-1',credentials:credentials});   
++    // const { fromSSO  } = require('@aws-sdk/credential-provider-sso');
++    // const credentials = await fromSSO({ profile: "dev" })();
++    AWS.config.update({region: 'sa-east-1'});
++   
++    
++    // const { fromSSO } = require("@aws-sdk/credential-provider-sso");
++    // const credentials = await fromSSO({ profile: "dev" })();
+     if (!opts.outputRawData && !opts.outputCloudformation && !opts.outputTerraform) {
+         throw new Error('You must specify an output type');
+     }
+@@ -120,7 +134,10 @@ async function main(opts) {
+     }
+ 
+     if (opts.profile) {
+-        AWS.config.credentials = new AWS.SharedIniFileCredentials({profile: opts.profile});
++        // AWS.config.credentials = new AWS.SharedIniFileCredentials({profile: opts.profile});
++
++        AWS.config.credentials= credentials
++        
+     }
+ 
+     if (AWS.config.region) {
+@@ -164,6 +181,7 @@ async function main(opts) {
+     outputMapTroposphere = function(){};
+     outputMapPulumi = function(){};
+     outputMapCdktf = function(){};
++    // outputMapBoto3 = function(){};
+     if (!opts.outputCloudformation) { outputMapCfn = function(){}; }
+     if (!opts.outputTerraform) { outputMapTf = function(){}; }
+ 
+diff --git a/js/mappings.js b/js/mappings.js
+index cee43c2..3e88c04 100755
+--- a/js/mappings.js
++++ b/js/mappings.js
+@@ -116,9 +116,36 @@ function ensureInitDeclaredGo(service, region) {
+     return '';
+ }
+ 
++function processTfCamelCasetoUnderline(key) {
++    
++      
++    var terraformConversionTable = {
++        'aws_glue_table': 'aws_glue_catalog_table',
++        'aws_glue_database': 'aws_glue_catalog_database',
++        'ConnectionProperties': 'connection_properties = ',
++        'DefaultArguments' : 'default_arguments = ',
++        'Parameters' : 'parameters =',
++        'S3Targets'   : "s3_target",
++        'SerdeInfo'  :'ser_de_info',
++        'tags'  :'tags = ',
++        // 'ingress': "ingress = ",
++        // 'egress': 'egress = ',
++
++     };
++    for (var k in terraformConversionTable) {
++        if (key == k) {
++            key = terraformConversionTable[k];
++        }
++    }
++    resut= key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
++    return resut;
++}
++
+ function processTfParameter(param, spacing, index, tracked_resources) {
++    
+     var paramitems = [];
+ 
++
+     if (param === undefined || param === null || (Array.isArray(param) && param.length == 0))
+         return undefined;
+     if (typeof param == "boolean") {
+@@ -182,42 +209,102 @@ function processTfParameter(param, spacing, index, tracked_resources) {
+         return `"${string_return}"`;
+     }
+     if (Array.isArray(param)) {
++        
+         if (param.length == 0) {
+-            return '[]';
+-        }
+-
++            return undefined;
++        }    
+         param.forEach(paramitem => {
+             paramitems.push(processTfParameter(paramitem, spacing + 4, index, tracked_resources));
+         });
+ 
+         return `[
+ ` + ' '.repeat(spacing + 4) + paramitems.join(`,
+-` + ' '.repeat(spacing + 4)) + `
++` + ' '.repeat(spacing)) + `
+ ` + ' '.repeat(spacing) + `]`;
+     }
+     if (typeof param == "object") {
++    
++        // if (Object.keys(param).indexOf('Arguments') !== -1 ){
++        //     debugger;
++        //     console.log(param)
++        // };
+         if (Object.keys(param).length === 0 && param.constructor === Object) {
+-            return "{}";
++            return undefined;
+         }
+ 
+-        Object.keys(param).forEach(function (key) {
+-            var subvalue = processTfParameter(param[key], spacing + 4, index, tracked_resources);
+-            if (typeof subvalue !== "undefined") {
+-                if (subvalue[0] == '{') {
+-                    paramitems.push(key + " " + subvalue);
+-                } else {
+-                    if (key.match(/^[0-9]+$/g)) {
+-                        key = "\"" + key + "\"";
++        Object.keys(param).forEach(function (key) {             
++            if (typeof param[key] !== "undefined" && param[key]  !== null ) {    
++                   
++                    if(Array.isArray(param[key]) ){
++                      
++                    
++                        
++                        // if(key != 'Subnets'){
++                        //     debugger;
++                        //     console.log(key)
++                        // }
++                        // codigo para resolver o problema com colunas do glue
++                        ignore= true;
++                        for (var [k, v] of Object.entries(param[key])){
++                           
++                            
++                            if ( typeof Object.entries(param[key])[k][1]  == "object" ){
++                                
++                              
++                                paramitems.push( processTfCamelCasetoUnderline(key) + processTfParameter(param[key][k], spacing + 6, index, tracked_resources));
++                            }
++                            else{
++                                ignore= false;                                 
++                                
++                            }
++                            
++            
++                        }
++                        
++                        if (  ignore  == false ){
++                          
++                            paramitems.push( processTfCamelCasetoUnderline(key) + " =  " + processTfParameter(param[key], spacing + 8, index, tracked_resources) + "");   
++                        }          
++                        
++                    }else{
++                       
++                        
++                        
++
++                        var subvalue = processTfParameter(param[key], spacing + 4, index, tracked_resources);
+                     }
+-                    paramitems.push(key + " = " + subvalue);
+-                }
++                    if (typeof subvalue !== "undefined") {
++                        if (subvalue[0] == '{') {
++                        
++                        
++                            paramitems.push(processTfCamelCasetoUnderline(key) + " " + subvalue);  
++                            
++                        } else {
++                            if (key.match(/^[0-9]+$/g)) {
++                                paramitems.push(processTfCamelCasetoUnderline(key) + " " + subvalue);
++                                processTfCamelCasetoUnderline(key) = "\"" + processTfCamelCasetoUnderline(key) + "\"";
++                            }
++                            if (key.indexOf("--") >= 0 || key.indexOf(".") >= 0 || key.indexOf("/") >= 0  || key.indexOf(":") >= 0 ){
++                                paramitems.push("\"" + processTfCamelCasetoUnderline(key) + "\"" + " = " + subvalue);
++                            }else{
++                                if(key == 'description '){
++                                paramitems.push(processTfCamelCasetoUnderline(key) + " = " + " ");
++                                }
++                                else{
++                                    paramitems.push(processTfCamelCasetoUnderline(key) + " = " + subvalue);
++
++                                }
++                            }
++                        }
++                    }
++       
+             }
+         });
+-
++        
+         return `{
+-` + ' '.repeat(spacing + 4) + paramitems.join(`
+-` + ' '.repeat(spacing + 4)) + `
+-` + ' '.repeat(spacing) + `}`;
++` + ' '.repeat(spacing +10) + paramitems.join(`
++` + ' '.repeat(spacing + 10)) + `
++` + ' '.repeat(spacing+ 4) + `}`;
+     }
+ 
+     return undefined;
+@@ -317,7 +404,7 @@ function processPulumiParameter(param, spacing, index, tracked_resources) {
+                         }, {
+                             type: 'danger'
+                         });
+-                        f2log(JSON.stringify(param));
++                        // f2log(JSON.stringify(param));
+                         f2trace(err);
+                     }
+                 }
+@@ -2252,39 +2339,58 @@ ${cfnspacing}${cfnspacing}Properties:${params}
+ function outputMapTf(index, service, type, options, region, was_blocked, logicalId, tracked_resources) {
+     var output = '';
+     var params = '';
+-
++    // debugger;
+     if (Object.keys(options).length) {
++       
++        
+         for (option in options) {
++            // if(option == 'network_configuration'){
++            //     debugger;
++            // }
++          
+             if (typeof options[option] !== "undefined" && options[option] !== null) {
++                
+                 if (Array.isArray(options[option]) && typeof options[option][0] === 'object') {
++ 
+                     for (var i = 0; i < options[option].length; i++) {
+                         var optionvalue = processTfParameter(options[option][i], 4, index, tracked_resources);
+                         if (typeof optionvalue !== "undefined") {
+-                            if (optionvalue[0] == '{') {
++                            
++                            if (optionvalue[0] == '{') {                                
++                            
+                                 params += `
+-    ${option} ${optionvalue}`;
++        ${processTfCamelCasetoUnderline(option)} ${optionvalue}`;
+                             } else {
+                                 if (option.match(/^[0-9]+$/g)) {
+-                                    option = "\"" + option + "\"";
++        processTfCamelCasetoUnderline(option) = "\"" + processTfCamelCasetoUnderline(option) + "\"";
+                                 }
+                                 params += `
+-    ${option} = ${optionvalue}`;
++        ${processTfCamelCasetoUnderline(option)} = ${optionvalue}`;
+                             }
+                         }
+ 
+                     }
++              
+                 } else {
++                   
+                     var optionvalue = processTfParameter(options[option], 4, index, tracked_resources);
++                    
+                     if (typeof optionvalue !== "undefined") {
+                         if (optionvalue[0] == '{') {
++                            // if( option == 'DefaultArguments'){
++                            //     debugger;
++                            //     print(option);
++                            // }
++                          
+                             params += `
+-    ${option} ${optionvalue}`;
++        ${processTfCamelCasetoUnderline(option)} ${optionvalue}`;
+                         } else {
+                             if (option.match(/^[0-9]+$/g)) {
+-                                option = "\"" + option + "\"";
++                                params += `
++                                ${processTfCamelCasetoUnderline(option)} = ${processTfCamelCasetoUnderline(option)}`;
+                             }
+                             params += `
+-    ${option} = ${optionvalue}`;
++        ${processTfCamelCasetoUnderline(option)}  = ${optionvalue}`;
+                         }
+                     }
+                 }
+@@ -2293,9 +2399,9 @@ function outputMapTf(index, service, type, options, region, was_blocked, logical
+         params += `
+ `;
+     }
+-
++    
+     output += `
+-resource "${type}" "${logicalId}" {${params}}
++resource "${processTfCamelCasetoUnderline(type.toLowerCase())}" "${logicalId}" {${params}}
+ `;
+ 
+     return output;
+@@ -3960,7 +4066,7 @@ function compileOutputs(tracked_resources, cfn_deletion_policy) {
+         }
+     }
+ 
+-    var region = 'us-east-1';
++    var region = 'sa-east-1';
+     if (outputs[0]) {
+         region = outputs[0].region;
+     } else if (tracked_resources[0]) {
+@@ -4435,7 +4541,7 @@ function performF2Mappings(objects) {
+                 'pulumi': {},
+                 'cdktf': {},
+                 'iam': {}
+-            };
++            };          
+ 
+             var service_mapping_success = false;
+             service_mapping_functions.forEach(service_mapping_function => {
+@@ -4463,7 +4569,7 @@ function performF2Mappings(objects) {
+                 }, {
+                     type: 'warning'
+                 });
+-                f2log(JSON.stringify(obj));
++                // f2log(JSON.stringify(obj));
+             }
+         } catch (err) {
+             $.notify({
+diff --git a/js/services/autoscaling.js b/js/services/autoscaling.js
+index 5ac52db..8f38147 100644
+--- a/js/services/autoscaling.js
++++ b/js/services/autoscaling.js
