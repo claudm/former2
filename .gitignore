@@ -6,3 +6,124 @@ cli/datatables.js
 cli/services
 lib/drawio/src/main/webapp/WEB-INF/lib/appengine-api-1.0-sdk-1.9.63.jar
 .DS_Store
+import json,requests,boto3,os,sys
+from requests_aws4auth import AWS4Auth
+from boto3 import Session
+import logging
+requests.packages.urllib3.disable_warnings()
+a_logger = logging.getLogger()
+a_logger.setLevel(logging.INFO)
+stdout_handler = logging.StreamHandler(sys.stdout)
+a_logger.addHandler(stdout_handler)
+
+
+
+session = Session(profile_name='default')
+credentials = session.get_credentials()
+current_credentials = credentials.get_frozen_credentials()
+
+# I would not recommend actually printing these. Generally unsafe.
+accessKey= current_credentials.access_key
+secretKey= current_credentials.secret_key
+sessionToken= current_credentials.token 
+region= 'sa-east-1'
+
+def request_body(body,url,method):
+    global accessKey,secretKey,sessionToken,region  
+    service = 'execute-api'
+    headers={"Content-Type":"application/json","x-apigw-api-id":"ye25sdnp51"}
+    auth = AWS4Auth(accessKey, secretKey, region, service, session_token=sessionToken)
+    req = requests.request(method, url, auth=auth, data=body, headers=headers,verify=False)
+    a_logger.info(req._content)
+    
+
+def create_role(role):
+
+    body =json.dumps(role)    
+    url = "https://api"
+    
+    return request_body(body,url,'POST')    
+
+def create_policy(policy):
+      
+    body =json.dumps(policy)
+    url = "https://api"
+    
+    return request_body(body,url,'POST')
+
+def delete_policy(policy_name):
+    url = "https://api"
+    return request_body(policy_name,url,'DELETE')  
+
+def delete_role(role_name):
+    url = "https://api"
+    return request_body(role_name,url,'DELETE') 
+
+
+def process_from_file(path,func):
+    
+    files =[f.path for f in os.scandir(path) if f.is_file()]
+    for file in files:
+       file_path =  os.path.realpath(file)
+       with open(file_path,'r',encoding='utf-8-sig') as f:
+            load=f.read()   
+            name =file.replace(".js","").split("\\")[1] 
+            if  func ==    "create_policy":
+                 
+                body = {"PolicyName": name,"Overwrite": True}
+                body["PolicyDocument"] = json.loads(load)
+            else:
+                policy_name = file.replace(".js","").split("\\")[1].split("-")[-1]
+                body = {"RoleName":name ,"ManagedPolicyArns": ["arn:aws:iam::xxxxx:policy/iamsr/" + policy_name]}
+                body['AssumeRolePolicyDocument']= json.loads(load)
+
+            #load function from variable
+            exec_func=eval(func)
+            #exec function
+            exec_func(body) 
+
+def resource_name(path,name):    
+   
+        file_path =  os.path.realpath(path) + '.js'
+        with open(file_path,'r',encoding='utf-8-sig') as f:
+            load=json.loads(f.read())
+            return load[name]
+             
+
+if __name__ == '__main__':  
+
+        
+
+  
+
+    policy_name="""
+    {
+        "PolicyName": "tloadbalancer"
+    }
+    """
+    
+    role_name="""
+    {
+    "RoleName": "lambda-"
+    }
+    """
+     
+    
+
+    #descomentar para deletar
+    # delete_role(role_name)
+    # delete_policy(policy_name)
+    
+
+
+    
+    process_from_file('policys','create_policy')
+    process_from_file('roles','create_role')  
+    # role_name = resource_name('roles/role','PolicyName')    
+    # policy_name = resource_name('policys/iam','RoleName')
+    
+    
+    
+
+
+     
