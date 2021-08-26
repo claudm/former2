@@ -794,3 +794,57 @@ index e36d1c7..d78ab93 100644
 +
              });
          }
+    if (obj.data.Predicate) {
+             var conditions = null;
++            
+             if (obj.data.Predicate.Conditions) {
++                conditionstf = [];
+                 conditions = [];
+                 obj.data.Predicate.Conditions.forEach(condition => {
+-                    if (condition.State == "SUCCEEDED") {
++                    var name =""
++                    var value =""
++                    // if (condition.State == "SUCCEEDED") {
++                        Object.keys(condition).forEach(function (key) {
++                     
++                            if (key.indexOf("Name") !== -1){
++                                name  = key;
++                                value = condition[key];
++                            }
++                        });
++                        
+                         conditions.push({
+                             'LogicalOperator': condition.LogicalOperator,
+-                            'JobName': condition.JobName,
+-                            'State': 'SUCCEEDED'
+-                            //'State': condition.State
++                             name  : value,
++                            // 'State': 'SUCCEEDED'
++                            'State': condition.State
+                         });
+-                    }
+-                });
++                        conditionstf.push({
++                            'LogicalOperator': condition.LogicalOperator,
++                            job_name  : value,
++                            // 'State': 'SUCCEEDED'
++                            'State': condition.State
++                        });
++                     
++                    
++               
++            // }
++            })
+             }
++
++            
++
+             reqParams.cfn['Predicate'] = {
+                 'Logical': obj.data.Predicate.Logical,
+                 'Conditions': conditions
+             };
++            reqParams.tf['Predicate'] = {
++                'Logical': obj.data.Predicate.Logical,
++                'Conditions': conditionstf
++            };
+         }
