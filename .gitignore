@@ -517,3 +517,58 @@ index e36d1c7..d78ab93 100644
          };
 +        
  
+
+         tracked_resources.push({
+             'obj': obj,
+@@ -1225,12 +1253,21 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+             'region': obj.region,
+             'service': 'glue',
+             'type': 'AWS::Glue::Table',
++            'terraformType': 'AWS_Glue_Table',
+             'options': reqParams
+         });
+     } else if (obj.type == "glue.partition") {
++
++        reqParams.tf['TableName'] = obj.data.TableName;
+         reqParams.cfn['TableName'] = obj.data.TableName;
++
++        reqParams.tf['DatabaseName'] = obj.data.DatabaseName;
+         reqParams.cfn['DatabaseName'] = obj.data.DatabaseName;
++
++        reqParams.tf['CatalogId'] = "var.accountid";
+         reqParams.cfn['CatalogId'] = "!Ref \"AWS::AccountId\"";
++        reqParams.tf['Parameters'] = obj.data.Parameters;
++        reqParams.tf['StorageDescriptor'] = obj.data.StorageDescriptor;
+         reqParams.cfn['PartitionInput'] = {
+             'Parameters': obj.data.Parameters,
+             'StorageDescriptor': obj.data.StorageDescriptor
+@@ -1248,12 +1285,32 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
+             'region': obj.region,
+             'service': 'glue',
+             'type': 'AWS::Glue::Partition',
++            'terraformType': 'AWS_Glue_Partition',
+             'options': reqParams
+         });
+     } else if (obj.type == "glue.crawler") {
++
++        reqParams.tf['Name'] = obj.data.Name;
+         reqParams.cfn['Name'] = obj.data.Name;
++
++        reqParams.tf['Role'] = obj.data.Role;
+         reqParams.cfn['Role'] = obj.data.Role;
++
+         if (obj.data.Targets) {
++            if (Object.keys(obj.data.Targets).indexOf('S3Targets') !== -1){
++                if (obj.data.Targets.S3Targets[0].hasOwnProperty('ConnectionName')){
++                // console.log(
++                    
++                    delete obj.data.Targets.S3Targets[0]['ConnectionName']
++                
++                // );
++                }
++
++            };
++            reqParams.tf['S3Targets'] = obj.data.Targets.S3Targets;
++            reqParams.tf['JdbcTargets'] = obj.data.Targets.JdbcTargets;
++            reqParams.tf['DynamoDBTargets'] = obj.data.Targets.DynamoDBTargets;
++            reqParams.tf['CatalogTargets'] = obj.data.Targets.CatalogTargets;
