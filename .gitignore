@@ -329,7 +329,3 @@ index cee43c2..3e88c04 100755
              }
          } catch (err) {
              $.notify({
-diff --git a/js/services/autoscaling.js b/js/services/autoscaling.js
-index 5ac52db..8f38147 100644
---- a/js/services/autoscaling.js
-+++ b/js/services/autoscaling.js
