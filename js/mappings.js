@@ -1,3 +1,4 @@
+
 // Logging functions
 var f2log = function (msg) { console.log(msg); }
 var f2trace = function (msg) { console.trace(msg); }
