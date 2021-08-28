@@ -1287,7 +1287,7 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
         reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['Name'] = obj.data.Name;
 
-        reqParams.tf['Role'] = obj.data.Role;
+        reqParams.tf['RoleArn'] = obj.data.Role;
         reqParams.cfn['Role'] = obj.data.Role;
         if (obj.data.Targets) {
             if(Object.keys(obj.data.Targets).indexOf('S3Targets')!== -1){
@@ -1419,8 +1419,9 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
 
         reqParams.tf['DefaultArguments'] = obj.data.DefaultArguments;
         reqParams.cfn['DefaultArguments'] = obj.data.DefaultArguments;
-
-        reqParams.tf['Connections'] = obj.data.Connections;
+        if(typeof obj.data.Connections == "object"){
+            reqParams.tf['Connections'] = obj.data.Connections;
+        }
         reqParams.cfn['Connections'] = obj.data.Connections;
 
         reqParams.tf['MaxRetries'] = obj.data.MaxRetries;
@@ -1447,6 +1448,7 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
         reqParams.tf['WorkerType'] = obj.data.WorkerType;
         reqParams.cfn['WorkerType'] = obj.data.WorkerType;
 
+
         tracked_resources.push({
             'obj': obj,
             'logicalId': getResourceName('glue', obj.id, 'AWS::Glue::Job'),
@@ -1460,6 +1462,10 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
 
         reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['Name'] = obj.data.Name;
+
+        reqParams.tf['Enabled'] = obj.data.Enabled;
+        reqParams.cfn['Enabled'] = obj.data.Enabled;
+
 
         reqParams.tf['Type'] = obj.data.Type;
         reqParams.cfn['Type'] = obj.data.Type;
@@ -1475,7 +1481,7 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
 
         reqParams.tf['StartOnCreation'] = true;
         reqParams.cfn['StartOnCreation'] = true;
-        if (obj.data.actions) {
+        if (obj.data.Actions) {
 
             reqParams.tf['Actions'] = [];
             reqParams.cfn['Actions'] = [];
