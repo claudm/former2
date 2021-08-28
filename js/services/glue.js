@@ -1215,7 +1215,7 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
         reqParams.tf['DatabaseName'] = obj.data.DatabaseName;
         reqParams.cfn['DatabaseName'] = obj.data.DatabaseName;
 
-        reqParams.tf['CatalogId'] = "!Ref \"AWS::AccountId\"";
+        reqParams.tf['CatalogId'] = "${var.accountid}";
         reqParams.cfn['CatalogId'] = "!Ref \"AWS::AccountId\"";
         reqParams.tf['Owner'] = obj.data.Owner;
         reqParams.tf['ViewOriginalText'] = obj.data.ViewOriginalText;
@@ -1223,6 +1223,7 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
         reqParams.tf['TableType'] = obj.data.TableType;
         reqParams.tf['Parameters'] = obj.data.Parameters;
         reqParams.tf['ViewExpandedText'] = obj.data.ViewExpandedText;
+        obj.data.StorageDescriptor['SerdeInfo']['Name']= obj.data.DatabaseName;
         reqParams.tf['StorageDescriptor'] = obj.data.StorageDescriptor;
         reqParams.tf['PartitionKeys'] = obj.data.PartitionKeys;
         reqParams.tf['Retention'] = obj.data.Retention;
@@ -1289,6 +1290,9 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
         reqParams.tf['Role'] = obj.data.Role;
         reqParams.cfn['Role'] = obj.data.Role;
         if (obj.data.Targets) {
+            if(Object.keys(obj.data.Targets).indexOf('S3Targets')!== -1){
+                delete obj.data.Targets.S3Targets[0]['ConnectionName'];
+            }
             reqParams.tf['S3Targets'] = obj.data.Targets.S3Targets;
             reqParams.tf['JdbcTargets'] = obj.data.Targets.JdbcTargets;
             reqParams.tf['DynamoDBTargets'] = obj.data.Targets.DynamoDBTargets;
