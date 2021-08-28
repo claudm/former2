@@ -955,7 +955,7 @@ async function updateDatatableAnalyticsGlue() {
         // no params
     }, true).then((data) => {
         $('#section-analytics-glue-connections-datatable').deferredBootstrapTable('removeAll');
-
+       
         data.ConnectionList.forEach(connection => {
             $('#section-analytics-glue-connections-datatable').deferredBootstrapTable('append', [{
                 f2id: connection.Name,
@@ -1187,12 +1187,18 @@ async function updateDatatableAnalyticsGlue() {
 
 service_mapping_functions.push(function(reqParams, obj, tracked_resources){
     if (obj.type == "glue.database") {
+        reqParams.tf['Name'] = obj.data.Name;
+        reqParams.tf['Description'] = obj.data.Description;
+        reqParams.tf['LocationUri'] = obj.data.LocationUri;
+        reqParams.tf['Parameters'] = obj.data.Parameters;
         reqParams.cfn['DatabaseInput'] = {
             'Name': obj.data.Name,
             'Description': obj.data.Description,
             'LocationUri': obj.data.LocationUri,
             'Parameters': obj.data.Parameters
         };
+
+        reqParams.tf['CatalogId'] = "!Ref \"AWS::AccountId\"";
         reqParams.cfn['CatalogId'] = "!Ref \"AWS::AccountId\"";
 
         tracked_resources.push({
@@ -1201,11 +1207,26 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Database',
+            'terraformType': 'AWS_Glue_Database',
             'options': reqParams
         });
     } else if (obj.type == "glue.table") {
+
+        reqParams.tf['DatabaseName'] = obj.data.DatabaseName;
         reqParams.cfn['DatabaseName'] = obj.data.DatabaseName;
+
+        reqParams.tf['CatalogId'] = "!Ref \"AWS::AccountId\"";
         reqParams.cfn['CatalogId'] = "!Ref \"AWS::AccountId\"";
+        reqParams.tf['Owner'] = obj.data.Owner;
+        reqParams.tf['ViewOriginalText'] = obj.data.ViewOriginalText;
+        reqParams.tf['Description'] = obj.data.Description;
+        reqParams.tf['TableType'] = obj.data.TableType;
+        reqParams.tf['Parameters'] = obj.data.Parameters;
+        reqParams.tf['ViewExpandedText'] = obj.data.ViewExpandedText;
+        reqParams.tf['StorageDescriptor'] = obj.data.StorageDescriptor;
+        reqParams.tf['PartitionKeys'] = obj.data.PartitionKeys;
+        reqParams.tf['Retention'] = obj.data.Retention;
+        reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['TableInput'] = {
             'Owner': obj.data.Owner,
             'ViewOriginalText': obj.data.ViewOriginalText,
@@ -1225,12 +1246,21 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Table',
+            'terraformType': 'AWS_Glue_Table',
             'options': reqParams
         });
     } else if (obj.type == "glue.partition") {
+
+        reqParams.tf['TableName'] = obj.data.TableName;
         reqParams.cfn['TableName'] = obj.data.TableName;
+
+        reqParams.tf['DatabaseName'] = obj.data.DatabaseName;
         reqParams.cfn['DatabaseName'] = obj.data.DatabaseName;
+
+        reqParams.tf['CatalogId'] = "!Ref \"AWS::AccountId\"";
         reqParams.cfn['CatalogId'] = "!Ref \"AWS::AccountId\"";
+        reqParams.tf['Parameters'] = obj.data.Parameters;
+        reqParams.tf['StorageDescriptor'] = obj.data.StorageDescriptor;
         reqParams.cfn['PartitionInput'] = {
             'Parameters': obj.data.Parameters,
             'StorageDescriptor': obj.data.StorageDescriptor
@@ -1248,12 +1278,21 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Partition',
+            'terraformType': 'AWS_Glue_Partition',
             'options': reqParams
         });
     } else if (obj.type == "glue.crawler") {
+
+        reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['Name'] = obj.data.Name;
+
+        reqParams.tf['Role'] = obj.data.Role;
         reqParams.cfn['Role'] = obj.data.Role;
         if (obj.data.Targets) {
+            reqParams.tf['S3Targets'] = obj.data.Targets.S3Targets;
+            reqParams.tf['JdbcTargets'] = obj.data.Targets.JdbcTargets;
+            reqParams.tf['DynamoDBTargets'] = obj.data.Targets.DynamoDBTargets;
+            reqParams.tf['CatalogTargets'] = obj.data.Targets.CatalogTargets;
             reqParams.cfn['Targets'] = {
                 'S3Targets': obj.data.Targets.S3Targets,
                 'JdbcTargets': obj.data.Targets.JdbcTargets,
@@ -1261,16 +1300,29 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
                 'CatalogTargets': obj.data.Targets.CatalogTargets
             };
         }
+
+        reqParams.tf['DatabaseName'] = obj.data.DatabaseName;
         reqParams.cfn['DatabaseName'] = obj.data.DatabaseName;
+
+        reqParams.tf['Description'] = obj.data.Description;
         reqParams.cfn['Description'] = obj.data.Description;
+
+        reqParams.tf['Classifiers'] = obj.data.Classifiers;
         reqParams.cfn['Classifiers'] = obj.data.Classifiers;
+
+        reqParams.tf['SchemaChangePolicy'] = obj.data.SchemaChangePolicy;
         reqParams.cfn['SchemaChangePolicy'] = obj.data.SchemaChangePolicy;
+
+        reqParams.tf['TablePrefix'] = obj.data.TablePrefix;
         reqParams.cfn['TablePrefix'] = obj.data.TablePrefix;
         if (obj.data.Schedule) {
+            reqParams.tf['ScheduleExpression'] = obj.data.Schedule.ScheduleExpression;
             reqParams.cfn['Schedule'] = {
                 'ScheduleExpression': obj.data.Schedule.ScheduleExpression
             };
         }
+
+        reqParams.tf['Configuration'] = obj.data.Configuration;
         reqParams.cfn['Configuration'] = obj.data.Configuration;
 
         tracked_resources.push({
@@ -1279,10 +1331,15 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Crawler',
+            'terraformType': 'AWS_Glue_Crawler',
             'options': reqParams
         });
     } else if (obj.type == "glue.classifier") {
         if (obj.data.GrokClassifier) {
+            reqParams.tf['CustomPatterns'] = obj.data.GrokClassifier.CustomPatterns;
+            reqParams.tf['GrokPattern'] = obj.data.GrokClassifier.GrokPattern;
+            reqParams.tf['Classification'] = obj.data.GrokClassifier.Classification;
+            reqParams.tf['Name'] = obj.data.GrokClassifier.Name;
             reqParams.cfn['GrokClassifier'] = {
                 'CustomPatterns': obj.data.GrokClassifier.CustomPatterns,
                 'GrokPattern': obj.data.GrokClassifier.GrokPattern,
@@ -1291,6 +1348,9 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             };
         }
         if (obj.data.XMLClassifier) {
+            reqParams.tf['RowTag'] = obj.data.XMLClassifier.RowTag;
+            reqParams.tf['Classification'] = obj.data.XMLClassifier.Classification;
+            reqParams.tf['Name'] = obj.data.XMLClassifier.Name;
             reqParams.cfn['XMLClassifier'] = {
                 'RowTag': obj.data.XMLClassifier.RowTag,
                 'Classification': obj.data.XMLClassifier.Classification,
@@ -1298,12 +1358,21 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             };
         }
         if (obj.data.JsonClassifier) {
+            reqParams.tf['JsonPath'] = obj.data.JsonClassifier.JsonPath;
+            reqParams.tf['Name'] = obj.data.JsonClassifier.Name;
             reqParams.cfn['JsonClassifier'] = {
                 'JsonPath': obj.data.JsonClassifier.JsonPath,
                 'Name': obj.data.JsonClassifier.Name
             };
         }
         if (obj.data.CsvClassifier) {
+            reqParams.tf['Name'] = obj.data.CsvClassifier.Name;
+            reqParams.tf['AllowSingleColumn'] = obj.data.CsvClassifier.AllowSingleColumn;
+            reqParams.tf['ContainsHeader'] = obj.data.CsvClassifier.ContainsHeader;
+            reqParams.tf['Delimiter'] = obj.data.CsvClassifier.Delimiter;
+            reqParams.tf['DisableValueTrimming'] = obj.data.CsvClassifier.DisableValueTrimming;
+            reqParams.tf['Header'] = obj.data.CsvClassifier.Header;
+            reqParams.tf['QuoteSymbol'] = obj.data.CsvClassifier.QuoteSymbol;
             reqParams.cfn['CsvClassifier'] = {
                 'Name': obj.data.CsvClassifier.Name,
                 'AllowSingleColumn': obj.data.CsvClassifier.AllowSingleColumn,
@@ -1321,24 +1390,57 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Classifier',
+            'terraformType': 'AWS_Glue_Classifier',
             'options': reqParams
         });
     } else if (obj.type == "glue.job") {
+
+        reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['Name'] = obj.data.Name;
+
+        reqParams.tf['Description'] = obj.data.Description;
         reqParams.cfn['Description'] = obj.data.Description;
+
+        reqParams.tf['LogUri'] = obj.data.LogUri;
         reqParams.cfn['LogUri'] = obj.data.LogUri;
+
+        reqParams.tf['Role'] = obj.data.Role;
         reqParams.cfn['Role'] = obj.data.Role;
+
+        reqParams.tf['ExecutionProperty'] = obj.data.ExecutionProperty;
         reqParams.cfn['ExecutionProperty'] = obj.data.ExecutionProperty;
+
+        reqParams.tf['Command'] = obj.data.Command;
         reqParams.cfn['Command'] = obj.data.Command;
+
+        reqParams.tf['DefaultArguments'] = obj.data.DefaultArguments;
         reqParams.cfn['DefaultArguments'] = obj.data.DefaultArguments;
+
+        reqParams.tf['Connections'] = obj.data.Connections;
         reqParams.cfn['Connections'] = obj.data.Connections;
+
+        reqParams.tf['MaxRetries'] = obj.data.MaxRetries;
         reqParams.cfn['MaxRetries'] = obj.data.MaxRetries;
+
+        reqParams.tf['AllocatedCapacity'] = obj.data.AllocatedCapacity;
         reqParams.cfn['AllocatedCapacity'] = obj.data.AllocatedCapacity;
+
+        reqParams.tf['Timeout'] = obj.data.Timeout;
         reqParams.cfn['Timeout'] = obj.data.Timeout;
+
+        reqParams.tf['NotificationProperty'] = obj.data.NotificationProperty;
         reqParams.cfn['NotificationProperty'] = obj.data.NotificationProperty;
+
+        reqParams.tf['GlueVersion'] = obj.data.GlueVersion;
         reqParams.cfn['GlueVersion'] = obj.data.GlueVersion;
+
+        reqParams.tf['MaxCapacity'] = obj.data.MaxCapacity;
         reqParams.cfn['MaxCapacity'] = obj.data.MaxCapacity;
+
+        reqParams.tf['NumberOfWorkers'] = obj.data.NumberOfWorkers;
         reqParams.cfn['NumberOfWorkers'] = obj.data.NumberOfWorkers;
+
+        reqParams.tf['WorkerType'] = obj.data.WorkerType;
         reqParams.cfn['WorkerType'] = obj.data.WorkerType;
 
         tracked_resources.push({
@@ -1347,18 +1449,35 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Job',
+            'terraformType': 'AWS_Glue_Job',
             'options': reqParams
         });
     } else if (obj.type == "glue.trigger") {
+
+        reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['Name'] = obj.data.Name;
+
+        reqParams.tf['Type'] = obj.data.Type;
         reqParams.cfn['Type'] = obj.data.Type;
+
+        reqParams.tf['Description'] = obj.data.Description;
         reqParams.cfn['Description'] = obj.data.Description;
+
+        reqParams.tf['Schedule'] = obj.data.Schedule;
         reqParams.cfn['Schedule'] = obj.data.Schedule;
+
+        reqParams.tf['WorkflowName'] = obj.data.WorkflowName;
         reqParams.cfn['WorkflowName'] = obj.data.WorkflowName;
+
+        reqParams.tf['StartOnCreation'] = true;
         reqParams.cfn['StartOnCreation'] = true;
         if (obj.data.actions) {
+
+            reqParams.tf['Actions'] = [];
             reqParams.cfn['Actions'] = [];
             obj.data.actions.forEach(action => {
+                reqParams.tf['JobName'] = action.JobName;
+                reqParams.tf['Arguments'] = action.Arguments;
                 reqParams.cfn['Actions'].push({
                     'JobName': action.JobName,
                     'Arguments': action.Arguments
@@ -1380,6 +1499,8 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
                     }
                 });
             }
+            reqParams.tf['Logical'] = obj.data.Predicate.Logical;
+            reqParams.tf['Conditions'] = conditions;
             reqParams.cfn['Predicate'] = {
                 'Logical': obj.data.Predicate.Logical,
                 'Conditions': conditions
@@ -1392,9 +1513,16 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Trigger',
+            'terraformType': 'AWS_Glue_Trigger',
             'options': reqParams
         });
     } else if (obj.type == "glue.connection") {
+        reqParams.tf['Description'] = obj.data.Description;
+        reqParams.tf['ConnectionType'] = obj.data.ConnectionType;
+        reqParams.tf['MatchCriteria'] = obj.data.MatchCriteria;
+        reqParams.tf['PhysicalConnectionRequirements'] = obj.data.PhysicalConnectionRequirements;
+        reqParams.tf['ConnectionProperties'] = obj.data.ConnectionProperties;
+        reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['ConnectionInput'] = {
             'Description': obj.data.Description,
             'ConnectionType': obj.data.ConnectionType,
@@ -1403,6 +1531,8 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'ConnectionProperties': obj.data.ConnectionProperties,
             'Name': obj.data.Name
         };
+
+        reqParams.tf['CatalogId'] = "!Ref \"AWS::AccountId\"";
         reqParams.cfn['CatalogId'] = "!Ref \"AWS::AccountId\"";
 
         tracked_resources.push({
@@ -1411,21 +1541,48 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Connection',
+            'terraformType': 'AWS_Glue_Connection',
             'options': reqParams
         });
     } else if (obj.type == "glue.devendpoint") {
+
+        reqParams.tf['EndpointName'] = obj.data.EndpointName;
         reqParams.cfn['EndpointName'] = obj.data.EndpointName;
+
+        reqParams.tf['RoleArn'] = obj.data.RoleArn;
         reqParams.cfn['RoleArn'] = obj.data.RoleArn;
+
+        reqParams.tf['SecurityGroupIds'] = obj.data.SecurityGroupIds;
         reqParams.cfn['SecurityGroupIds'] = obj.data.SecurityGroupIds;
+
+        reqParams.tf['SubnetId'] = obj.data.SubnetId;
         reqParams.cfn['SubnetId'] = obj.data.SubnetId;
+
+        reqParams.tf['NumberOfNodes'] = obj.data.NumberOfNodes;
         reqParams.cfn['NumberOfNodes'] = obj.data.NumberOfNodes;
+
+        reqParams.tf['ExtraPythonLibsS3Path'] = obj.data.ExtraPythonLibsS3Path;
         reqParams.cfn['ExtraPythonLibsS3Path'] = obj.data.ExtraPythonLibsS3Path;
+
+        reqParams.tf['ExtraJarsS3Path'] = obj.data.ExtraJarsS3Path;
         reqParams.cfn['ExtraJarsS3Path'] = obj.data.ExtraJarsS3Path;
+
+        reqParams.tf['PublicKey'] = obj.data.PublicKey;
         reqParams.cfn['PublicKey'] = obj.data.PublicKey;
+
+        reqParams.tf['PublicKeys'] = obj.data.PublicKeys;
         reqParams.cfn['PublicKeys'] = obj.data.PublicKeys;
+
+        reqParams.tf['WorkerType'] = obj.data.WorkerType;
         reqParams.cfn['WorkerType'] = obj.data.WorkerType;
+
+        reqParams.tf['NumberOfWorkers'] = obj.data.NumberOfWorkers;
         reqParams.cfn['NumberOfWorkers'] = obj.data.NumberOfWorkers;
+
+        reqParams.tf['GlueVersion'] = obj.data.GlueVersion;
         reqParams.cfn['GlueVersion'] = obj.data.GlueVersion;
+
+        reqParams.tf['Arguments'] = obj.data.Arguments;
         reqParams.cfn['Arguments'] = obj.data.Arguments;
 
         tracked_resources.push({
@@ -1434,11 +1591,17 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::DevEndpoint',
+            'terraformType': 'AWS_Glue_DevEndpoint',
             'options': reqParams
         });
     } else if (obj.type == "glue.securityconfiguration") {
+
+        reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['Name'] = obj.data.Name;
         if (obj.data.EncryptionConfiguration) {
+            reqParams.tf['CloudWatchEncryption'] = obj.data.CloudWatchEncryption;
+            reqParams.tf['JobBookmarksEncryption'] = obj.data.JobBookmarksEncryption;
+            reqParams.tf['S3Encryptions'] = obj.data.S3Encryption;
             reqParams.cfn['EncryptionConfiguration'] = {
                 'CloudWatchEncryption': obj.data.CloudWatchEncryption,
                 'JobBookmarksEncryption': obj.data.JobBookmarksEncryption,
@@ -1452,9 +1615,12 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::SecurityConfiguration',
+            'terraformType': 'AWS_Glue_SecurityConfiguration',
             'options': reqParams
         });
     } else if (obj.type == "glue.datacatalogencryptionsettings") {
+
+        reqParams.tf['CatalogId'] = "!Ref \"AWS::AccountId\"";
         reqParams.cfn['CatalogId'] = "!Ref \"AWS::AccountId\"";
         if (obj.data.DataCatalogEncryptionSettings) {
             var connectionpasswordencryption = null;
@@ -1464,6 +1630,8 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
                     'KmsKeyId': obj.data.DataCatalogEncryptionSettings.ConnectionPasswordEncryption.AwsKmsKeyId
                 };
             }
+            reqParams.tf['EncryptionAtRest'] = obj.data.DataCatalogEncryptionSettings.EncryptionAtRest;
+            reqParams.tf['ConnectionPasswordEncryption'] = connectionpasswordencryption;
             reqParams.cfn['DataCatalogEncryptionSettings'] = {
                 'EncryptionAtRest': obj.data.DataCatalogEncryptionSettings.EncryptionAtRest,
                 'ConnectionPasswordEncryption': connectionpasswordencryption
@@ -1476,23 +1644,45 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::DataCatalogEncryptionSettings',
+            'terraformType': 'AWS_Glue_DataCatalogEncryptionSettings',
             'options': reqParams
         });
     } else if (obj.type == "glue.mltransform") {
+
+        reqParams.tf['Description'] = obj.data.Description;
         reqParams.cfn['Description'] = obj.data.Description;
         if (obj.data.InputRecordTables) {
+            reqParams.tf['GlueTables'] = obj.data.InputRecordTables;
             reqParams.cfn['InputRecordTables'] = {
                 'GlueTables': obj.data.InputRecordTables
             };
         }
+
+        reqParams.tf['MaxCapacity'] = obj.data.MaxCapacity;
         reqParams.cfn['MaxCapacity'] = obj.data.MaxCapacity;
+
+        reqParams.tf['MaxRetries'] = obj.data.MaxRetries;
         reqParams.cfn['MaxRetries'] = obj.data.MaxRetries;
+
+        reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['Name'] = obj.data.Name;
+
+        reqParams.tf['NumberOfWorkers'] = obj.data.NumberOfWorkers;
         reqParams.cfn['NumberOfWorkers'] = obj.data.NumberOfWorkers;
+
+        reqParams.tf['Role'] = obj.data.Role;
         reqParams.cfn['Role'] = obj.data.Role;
+
+        reqParams.tf['Timeout'] = obj.data.Timeout;
         reqParams.cfn['Timeout'] = obj.data.Timeout;
+
+        reqParams.tf['TransformParameters'] = obj.data.Parameters;
         reqParams.cfn['TransformParameters'] = obj.data.Parameters;
+
+        reqParams.tf['WorkerType'] = obj.data.WorkerType;
         reqParams.cfn['WorkerType'] = obj.data.WorkerType;
+
+        reqParams.tf['GlueVersion'] = obj.data.GlueVersion;
         reqParams.cfn['GlueVersion'] = obj.data.GlueVersion;
 
         /*
@@ -1506,11 +1696,18 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::MLTransform',
+            'terraformType': 'AWS_Glue_MLTransform',
             'options': reqParams
         });
     } else if (obj.type == "glue.workflow") {
+
+        reqParams.tf['Name'] = obj.data.Name;
         reqParams.cfn['Name'] = obj.data.Name;
+
+        reqParams.tf['Description'] = obj.data.Description;
         reqParams.cfn['Description'] = obj.data.Description;
+
+        reqParams.tf['DefaultRunProperties'] = obj.data.DefaultRunProperties;
         reqParams.cfn['DefaultRunProperties'] = obj.data.DefaultRunProperties;
 
         /*
@@ -1524,10 +1721,15 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Workflow',
+            'terraformType': 'AWS_Glue_Workflow',
             'options': reqParams
         });
     } else if (obj.type == "glue.registry") {
+
+        reqParams.tf['Name'] = obj.data.RegistryName;
         reqParams.cfn['Name'] = obj.data.RegistryName;
+
+        reqParams.tf['Description'] = obj.data.Description;
         reqParams.cfn['Description'] = obj.data.Description;
 
         tracked_resources.push({
@@ -1536,17 +1738,30 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Registry',
+            'terraformType': 'AWS_Glue_Registry',
             'options': reqParams
         });
     } else if (obj.type == "glue.schema") {
+
+        reqParams.tf['Name'] = obj.data.SchemaName;
         reqParams.cfn['Name'] = obj.data.SchemaName;
+        reqParams.tf['Name'] = obj.data.RegistryName;
+        reqParams.tf['Arn'] = obj.data.RegistryArn;
         reqParams.cfn['Registry'] = {
             'Name': obj.data.RegistryName,
             'Arn': obj.data.RegistryArn
         };
+
+        reqParams.tf['Description'] = obj.data.Description;
         reqParams.cfn['Description'] = obj.data.Description;
+
+        reqParams.tf['DataFormat'] = obj.data.DataFormat;
         reqParams.cfn['DataFormat'] = obj.data.DataFormat;
+
+        reqParams.tf['Compatibility'] = obj.data.Compatibility;
         reqParams.cfn['Compatibility'] = obj.data.Compatibility;
+
+        reqParams.tf['SchemaDefinition'] = obj.data.SchemaDefinition;
         reqParams.cfn['SchemaDefinition'] = obj.data.SchemaDefinition;
 
         tracked_resources.push({
@@ -1555,12 +1770,16 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::Schema',
+            'terraformType': 'AWS_Glue_Schema',
             'options': reqParams
         });
     } else if (obj.type == "glue.schemaversion") {
+        reqParams.tf['SchemaArn'] = obj.data.SchemaArn;
         reqParams.cfn['Schema'] = {
             'SchemaArn': obj.data.SchemaArn
         };
+
+        reqParams.tf['SchemaDefinition'] = obj.data.SchemaDefinition;
         reqParams.cfn['SchemaDefinition'] = obj.data.SchemaDefinition;
 
         tracked_resources.push({
@@ -1569,11 +1788,18 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::SchemaVersion',
+            'terraformType': 'AWS_Glue_SchemaVersion',
             'options': reqParams
         });
     } else if (obj.type == "glue.schemaversionmetadata") {
+
+        reqParams.tf['Key'] = obj.data.Key;
         reqParams.cfn['Key'] = obj.data.Key;
+
+        reqParams.tf['Value'] = obj.data.Value;
         reqParams.cfn['Value'] = obj.data.Value;
+
+        reqParams.tf['SchemaVersionId'] = obj.data.SchemaVersionId;
         reqParams.cfn['SchemaVersionId'] = obj.data.SchemaVersionId;
 
         tracked_resources.push({
@@ -1582,6 +1808,7 @@ service_mapping_functions.push(function(reqParams, obj, tracked_resources){
             'region': obj.region,
             'service': 'glue',
             'type': 'AWS::Glue::SchemaVersionMetadata',
+            'terraformType': 'AWS_Glue_SchemaVersionMetadata',
             'options': reqParams
         });
     } else {

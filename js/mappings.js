@@ -116,8 +116,35 @@ function ensureInitDeclaredGo(service, region) {
     return '';
 }
 
+function processTfCamelCasetoUnderline(key) {
+    
+      
+    var terraformConversionTable = {
+        'aws_glue_table': 'aws_glue_catalog_table',
+        'aws_glue_database': 'aws_glue_catalog_database',
+        'ConnectionProperties': 'connection_properties = ',
+        'DefaultArguments' : 'default_arguments = ',
+        'Parameters' : 'parameters =',
+        'S3Targets'   : "s3_target",
+        'SerdeInfo'  :'ser_de_info',
+        'tags'  :'tags = ',
+        // 'ingress': "ingress = ",
+        // 'egress': 'egress = ',
+
+     };
+    for (var k in terraformConversionTable) {
+        if (key == k) {
+            key = terraformConversionTable[k];
+        }
+    }
+    resut= key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+    return resut;
+}
+
 function processTfParameter(param, spacing, index, tracked_resources) {
+    
     var paramitems = [];
+
 
     if (param === undefined || param === null || (Array.isArray(param) && param.length == 0))
         return undefined;
@@ -182,42 +209,102 @@ function processTfParameter(param, spacing, index, tracked_resources) {
         return `"${string_return}"`;
     }
     if (Array.isArray(param)) {
+        
         if (param.length == 0) {
-            return '[]';
-        }
-
+            return undefined;
+        }    
         param.forEach(paramitem => {
             paramitems.push(processTfParameter(paramitem, spacing + 4, index, tracked_resources));
         });
 
         return `[
 ` + ' '.repeat(spacing + 4) + paramitems.join(`,
-` + ' '.repeat(spacing + 4)) + `
+` + ' '.repeat(spacing)) + `
 ` + ' '.repeat(spacing) + `]`;
     }
     if (typeof param == "object") {
+    
+        // if (Object.keys(param).indexOf('Arguments') !== -1 ){
+        //     debugger;
+        //     console.log(param)
+        // };
         if (Object.keys(param).length === 0 && param.constructor === Object) {
-            return "{}";
+            return undefined;
         }
 
-        Object.keys(param).forEach(function (key) {
-            var subvalue = processTfParameter(param[key], spacing + 4, index, tracked_resources);
-            if (typeof subvalue !== "undefined") {
-                if (subvalue[0] == '{') {
-                    paramitems.push(key + " " + subvalue);
-                } else {
-                    if (key.match(/^[0-9]+$/g)) {
-                        key = "\"" + key + "\"";
+        Object.keys(param).forEach(function (key) {             
+            if (typeof param[key] !== "undefined" && param[key]  !== null ) {    
+                   
+                    if(Array.isArray(param[key]) ){
+                      
+                    
+                        
+                        // if(key != 'Subnets'){
+                        //     debugger;
+                        //     console.log(key)
+                        // }
+                        // codigo para resolver o problema com colunas do glue
+                        ignore= true;
+                        for (var [k, v] of Object.entries(param[key])){
+                           
+                            
+                            if ( typeof Object.entries(param[key])[k][1]  == "object" ){
+                                
+                              
+                                paramitems.push( processTfCamelCasetoUnderline(key) + processTfParameter(param[key][k], spacing + 6, index, tracked_resources));
+                            }
+                            else{
+                                ignore= false;                                 
+                                
+                            }
+                            
+            
+                        }
+                        
+                        if (  ignore  == false ){
+                          
+                            paramitems.push( processTfCamelCasetoUnderline(key) + " =  " + processTfParameter(param[key], spacing + 8, index, tracked_resources) + "");   
+                        }          
+                        
+                    }else{
+                       
+                        
+                        
+
+                        var subvalue = processTfParameter(param[key], spacing + 4, index, tracked_resources);
                     }
-                    paramitems.push(key + " = " + subvalue);
-                }
+                    if (typeof subvalue !== "undefined") {
+                        if (subvalue[0] == '{') {
+                        
+                        
+                            paramitems.push(processTfCamelCasetoUnderline(key) + " " + subvalue);  
+                            
+                        } else {
+                            if (key.match(/^[0-9]+$/g)) {
+                                paramitems.push(processTfCamelCasetoUnderline(key) + " " + subvalue);
+                                processTfCamelCasetoUnderline(key) = "\"" + processTfCamelCasetoUnderline(key) + "\"";
+                            }
+                            if (key.indexOf("--") >= 0 || key.indexOf(".") >= 0 || key.indexOf("/") >= 0  || key.indexOf(":") >= 0 ){
+                                paramitems.push("\"" + processTfCamelCasetoUnderline(key) + "\"" + " = " + subvalue);
+                            }else{
+                                if(key == 'description '){
+                                paramitems.push(processTfCamelCasetoUnderline(key) + " = " + " ");
+                                }
+                                else{
+                                    paramitems.push(processTfCamelCasetoUnderline(key) + " = " + subvalue);
+
+                                }
+                            }
+                        }
+                    }
+       
             }
         });
-
+        
         return `{
-` + ' '.repeat(spacing + 4) + paramitems.join(`
-` + ' '.repeat(spacing + 4)) + `
-` + ' '.repeat(spacing) + `}`;
+` + ' '.repeat(spacing +10) + paramitems.join(`
+` + ' '.repeat(spacing + 10)) + `
+` + ' '.repeat(spacing+ 4) + `}`;
     }
 
     return undefined;
@@ -317,7 +404,7 @@ function processPulumiParameter(param, spacing, index, tracked_resources) {
                         }, {
                             type: 'danger'
                         });
-                        f2log(JSON.stringify(param));
+                        // f2log(JSON.stringify(param));
                         f2trace(err);
                     }
                 }
@@ -576,7 +663,11 @@ function processCfnParameter(param, spacing, index, tracked_resources) {
                     });
                     for (var j = 0; j < 10; j++) { // replace many
                         pre_return_str = "!Sub ";
-                        param = param.replace(tracked_resources[i].returnValues.Ref, "${" + tracked_resources[i].logicalId + "}");
+                        var replacement_proposed = param.replace(tracked_resources[i].returnValues.Ref, "${" + tracked_resources[i].logicalId + "}");
+                        if (replacement_proposed.match(/\${[^}]*\${/g)) {
+                            break
+                        }
+                        param = replacement_proposed;
                     }
                 }
                 if (tracked_resources[i].returnValues.GetAtt) {
@@ -596,7 +687,11 @@ function processCfnParameter(param, spacing, index, tracked_resources) {
                             });
                             for (var j = 0; j < 10; j++) { // replace many
                                 pre_return_str = "!Sub ";
-                                param = param.replace(tracked_resources[i].returnValues.GetAtt[attr_name], "${" + tracked_resources[i].logicalId + "." + attr_name + "}");
+                                var replacement_proposed = param.replace(tracked_resources[i].returnValues.GetAtt[attr_name], "${" + tracked_resources[i].logicalId + "." + attr_name + "}");
+                                if (replacement_proposed.match(/\${[^}]*\${/g)) {
+                                    break
+                                }
+                                param = replacement_proposed;
                             }
                         }
                     }
@@ -613,7 +708,11 @@ function processCfnParameter(param, spacing, index, tracked_resources) {
                 ) {
                     for (var j = 0; j < 10; j++) { // replace many
                         pre_return_str = "!Sub ";
-                        param = param.replace(stack_parameter.default_value.toString(), "${" + stack_parameter.name + "}");
+                        var replacement_proposed = param.replace(stack_parameter.default_value.toString(), "${" + stack_parameter.name + "}");
+                        if (replacement_proposed.match(/\${[^}]*\${/g)) {
+                            break
+                        }
+                        param = replacement_proposed;
                     }
                 }
             }
@@ -2252,39 +2351,58 @@ ${cfnspacing}${cfnspacing}Properties:${params}
 function outputMapTf(index, service, type, options, region, was_blocked, logicalId, tracked_resources) {
     var output = '';
     var params = '';
-
+    // debugger;
     if (Object.keys(options).length) {
+       
+        
         for (option in options) {
+            // if(option == 'network_configuration'){
+            //     debugger;
+            // }
+          
             if (typeof options[option] !== "undefined" && options[option] !== null) {
+                
                 if (Array.isArray(options[option]) && typeof options[option][0] === 'object') {
+ 
                     for (var i = 0; i < options[option].length; i++) {
                         var optionvalue = processTfParameter(options[option][i], 4, index, tracked_resources);
                         if (typeof optionvalue !== "undefined") {
-                            if (optionvalue[0] == '{') {
+                            
+                            if (optionvalue[0] == '{') {                                
+                            
                                 params += `
-    ${option} ${optionvalue}`;
+        ${processTfCamelCasetoUnderline(option)} ${optionvalue}`;
                             } else {
                                 if (option.match(/^[0-9]+$/g)) {
-                                    option = "\"" + option + "\"";
+        processTfCamelCasetoUnderline(option) = "\"" + processTfCamelCasetoUnderline(option) + "\"";
                                 }
                                 params += `
-    ${option} = ${optionvalue}`;
+        ${processTfCamelCasetoUnderline(option)} = ${optionvalue}`;
                             }
                         }
 
                     }
+              
                 } else {
+                   
                     var optionvalue = processTfParameter(options[option], 4, index, tracked_resources);
+                    
                     if (typeof optionvalue !== "undefined") {
                         if (optionvalue[0] == '{') {
+                            // if( option == 'DefaultArguments'){
+                            //     debugger;
+                            //     print(option);
+                            // }
+                          
                             params += `
-    ${option} ${optionvalue}`;
+        ${processTfCamelCasetoUnderline(option)} ${optionvalue}`;
                         } else {
                             if (option.match(/^[0-9]+$/g)) {
-                                option = "\"" + option + "\"";
+                                params += `
+                                ${processTfCamelCasetoUnderline(option)} = ${processTfCamelCasetoUnderline(option)}`;
                             }
                             params += `
-    ${option} = ${optionvalue}`;
+        ${processTfCamelCasetoUnderline(option)}  = ${optionvalue}`;
                         }
                     }
                 }
@@ -2293,9 +2411,9 @@ function outputMapTf(index, service, type, options, region, was_blocked, logical
         params += `
 `;
     }
-
+    
     output += `
-resource "${type}" "${logicalId}" {${params}}
+resource "${processTfCamelCasetoUnderline(type.toLowerCase())}" "${logicalId}" {${params}}
 `;
 
     return output;
@@ -3960,7 +4078,7 @@ function compileOutputs(tracked_resources, cfn_deletion_policy) {
         }
     }
 
-    var region = 'us-east-1';
+    var region = 'sa-east-1';
     if (outputs[0]) {
         region = outputs[0].region;
     } else if (tracked_resources[0]) {
@@ -4435,7 +4553,7 @@ function performF2Mappings(objects) {
                 'pulumi': {},
                 'cdktf': {},
                 'iam': {}
-            };
+            };          
 
             var service_mapping_success = false;
             service_mapping_functions.forEach(service_mapping_function => {
@@ -4463,7 +4581,7 @@ function performF2Mappings(objects) {
                 }, {
                     type: 'warning'
                 });
-                f2log(JSON.stringify(obj));
+                // f2log(JSON.stringify(obj));
             }
         } catch (err) {
             $.notify({
