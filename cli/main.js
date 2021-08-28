@@ -120,9 +120,7 @@ async function main(opts) {
     }
 
     if (opts.profile) {
-        // AWS.config.credentials = new AWS.SharedIniFileCredentials({profile: opts.profile});
-
-        AWS.config.credentials= credentials
+        AWS.config.credentials = new AWS.SharedIniFileCredentials({profile: opts.profile});
         
     }
 
