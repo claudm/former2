@@ -1187,10 +1187,12 @@
 
     service_mapping_functions.push(function(reqParams, obj, tracked_resources){
         if (obj.type == "glue.database") {
+
             reqParams.tf['Name'] = obj.data.Name;
             reqParams.tf['Description'] = obj.data.Description;
             reqParams.tf['LocationUri'] = obj.data.LocationUri;
             reqParams.tf['Parameters'] = obj.data.Parameters;
+
             reqParams.cfn['DatabaseInput'] = {
                 'Name': obj.data.Name,
                 'Description': obj.data.Description,
@@ -1198,7 +1200,7 @@
                 'Parameters': obj.data.Parameters
             };
 
-            reqParams.tf['CatalogId'] = "${var.accountid}";
+        // reqParams.tf['CatalogId'] = "${var.accountid}";
             reqParams.cfn['CatalogId'] = "!Ref \"AWS::AccountId\"";
 
             tracked_resources.push({
@@ -1212,6 +1214,10 @@
             });
         } else if (obj.type == "glue.table") {
 
+            obj.data.StorageDescriptor['SerdeInfo']['Name'] = obj.data.DatabaseName;
+
+            reqParams.tf['StorageDescriptor'] = obj.data.StorageDescriptor;
+
             reqParams.tf['DatabaseName'] = obj.data.DatabaseName;
             reqParams.cfn['DatabaseName'] = obj.data.DatabaseName;
 
@@ -1221,10 +1227,10 @@
             reqParams.tf['ViewOriginalText'] = obj.data.ViewOriginalText;
             reqParams.tf['Description'] = obj.data.Description;
             reqParams.tf['TableType'] = obj.data.TableType;
-            reqParams.tf['Parameters'] = obj.data.Parameters;
+            // reqParams.tf['Parameters'] = obj.data.Parameters;
             reqParams.tf['ViewExpandedText'] = obj.data.ViewExpandedText;
             obj.data.StorageDescriptor['SerdeInfo']['Name']= obj.data.DatabaseName;
-            reqParams.tf['StorageDescriptor'] = obj.data.StorageDescriptor;
+            
             reqParams.tf['PartitionKeys'] = obj.data.PartitionKeys;
             reqParams.tf['Retention'] = obj.data.Retention;
             reqParams.tf['Name'] = obj.data.Name;
@@ -1447,6 +1453,8 @@
 
             reqParams.tf['WorkerType'] = obj.data.WorkerType;
             reqParams.cfn['WorkerType'] = obj.data.WorkerType;
+            reqParams.tf['ExecutionProperty'] = obj.data.ExecutionProperty;
+            reqParams.cfn['ExecutionProperty'] = obj.data.ExecutionProperty;
 
             tracked_resources.push({
                 'obj': obj,
@@ -1479,6 +1487,7 @@
             reqParams.cfn['WorkflowName'] = obj.data.WorkflowName;
 
 
+
             // reqParams.tf['StartOnCreation'] = true;
             reqParams.cfn['StartOnCreation'] = true;
             if (obj.data.Actions) {
@@ -1509,7 +1518,7 @@
             if (obj.data.Predicate) {
                 var conditions = null;
                 if (obj.data.Predicate.Conditions) {
-
+                    
                     conditions = [];
                     obj.data.Predicate.Conditions.forEach(condition => {
                         var name= ""
@@ -1527,12 +1536,19 @@
                                 // 'State': 'SUCCEEDED'
                                 'State': condition.State
                             });
+                            
+
                         });
                     })
                 }
-                reqParams.tf['Logical'] = obj.data.Predicate.Logical;
-                reqParams.tf['Conditions'] = conditions;
+               
                 reqParams.cfn['Predicate'] = {
+                    'Logical': obj.data.Predicate.Logical,
+                    'Conditions': conditions
+                };
+                conditions = conditions['Job_name']= conditions['name'];
+                delete conditions['name']; 
+                reqParams.tf['Predicate'] = {
                     'Logical': obj.data.Predicate.Logical,
                     'Conditions': conditions
                 };
